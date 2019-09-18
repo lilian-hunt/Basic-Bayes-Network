@@ -1,3 +1,4 @@
+import math
 def parseInputLine(input_line):
     line = []
     for s in input_line:
@@ -60,8 +61,11 @@ def predict(train_file, test_file, useMLE):
     file = open(train_file,"r")
     num_movies = int(file.readline().strip())
     num_users = int(file.readline().strip())
-    container = [[[0 for x in range(2)] for y in range(2)] for i in range(num_movies)]
-    prob_Y = [0,0]
+    
+    #Initialise with 1 to account for zero frequency problem
+    container = [[[1 for x in range(2)] for y in range(2)] for i in range(num_movies)]
+    #Start from 2 * number of movies to account for zero frequency problem
+    prob_Y = [2*num_movies,2*num_movies]
     for i in range(num_users):
         line = parseInputLine(file.readline().strip().split(" "))
         for x in range(num_movies):
@@ -71,6 +75,7 @@ def predict(train_file, test_file, useMLE):
             box[get_y][get_x] += 1
         prob_Y[line[num_movies]] += 1
     prob_Y_MLE = calculateYMLE(prob_Y)
+    
     # If using Maximum Likelihood Estimators
     if useMLE:
         estimates = calculateMLEestimates(container, num_movies)
@@ -87,13 +92,14 @@ def predict(train_file, test_file, useMLE):
         line = parseInputLine(file.readline().strip().split(" "))
         
         #Use Bayes Theorem to calculate the probability of 0/1
-        yIs0 = prob_Y_MLE[0]
-        yIs1 = prob_Y_MLE[1]
+        #Use logs for numerical stability
+        yIs0 = math.log(prob_Y_MLE[0])
+        yIs1 = math.log(prob_Y_MLE[1])
         for movie in range(num_movies):
             box = estimates[movie]
             get_x = line[movie]     
-            yIs0 *= box[0][get_x]
-            yIs1 *= box[1][get_x]
+            yIs0 += math.log(box[0][get_x])
+            yIs1 += math.log(box[1][get_x])
         
         # Determine which has a higher argmax, will predict the outcome with the larger value
         if (yIs0 > yIs1):
@@ -105,7 +111,7 @@ def predict(train_file, test_file, useMLE):
     #Prints the percentage accuracy and the number of correctly identified cases
     print("Accurately identified: " + str(count_accurate_predictions) + "/" + str(num_users) + "%: "+ (str(count_accurate_predictions/float(num_users))))
 
-predict("netflix-train.txt", "netflix-test.txt", True)
-predict("netflix-train.txt", "netflix-test.txt", False)
-predict("heart-train.txt", "heart-test.txt", True)
-predict("heart-train.txt", "heart-test.txt", False)
+# predict("netflix-train.txt", "netflix-test.txt", True)
+# predict("netflix-train.txt", "netflix-test.txt", False)
+# predict("heart-train.txt", "heart-test.txt", True)
+# predict("heart-train.txt", "heart-test.txt", False)
